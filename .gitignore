@@ -1,9 +1,9 @@
 
-data/.DS_Store
+.DS_Store
 data/historic-imports
 data/output/*
 
-docs/.DS_Store
+.DS_Store
 docs/*.txt
 docs/*.drawio
 
