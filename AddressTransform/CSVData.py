@@ -47,6 +47,7 @@ class CSVData:
 
     def set_data(self, data):
         self.data = data
+        return self
 
     # Writes "data" to "out_path" as a CSV file with "delimiter"
     def write_csv(self):
@@ -54,3 +55,4 @@ class CSVData:
             csv_writer = csv.writer(csv_file, delimiter=self.delimiter)
             for row in self.data:
                 csv_writer.writerow(row)
+        return self
