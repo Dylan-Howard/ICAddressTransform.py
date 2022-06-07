@@ -27,6 +27,8 @@ def get_file(dir, filenameStart, extension):
 def transform_addresses(data_dir, data_file, out_dir):
     data_file = get_file(data_dir, data_file, '.csv')
 
+    print(data_file)
+
     if data_file is None:  # Ends script if no import data exists
         print('No import data could be found.')
         quit()

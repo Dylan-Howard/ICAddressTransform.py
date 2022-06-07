@@ -3,6 +3,7 @@ docs/*.txt
 docs/*.drawio
 .DS_Store
 .vscode
+node_modules
 
 data/historic-imports
 data/output/*

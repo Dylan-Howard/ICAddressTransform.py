@@ -1,5 +1,9 @@
 
 
+from audioop import add
+from warnings import catch_warnings
+
+
 class AddressDatabase:
     """docstring for AddressDatabase."""
 
@@ -38,6 +42,8 @@ class AddressDatabase:
                 elif ';' in addr_unit:
                     self.address_groups['manual_transforms'].append(a)
                 elif 'AND' in addr_unit:
+                    self.address_groups['manual_transforms'].append(a)
+                elif 'OR' in addr_unit:
                     self.address_groups['manual_transforms'].append(a)
                 elif not ('-' in addr_unit):
                     self.address_groups['no_transforms'].append(a)
@@ -85,6 +91,7 @@ class AddressDatabase:
 
     # Returns the start and end index of an address unit's sequence
     def get_seq_range(self, addr_unit):
+        print(addr_unit)
         in_delimitter = addr_unit.index('-')
         return {
             'start_in': addr_unit[:in_delimitter],
@@ -117,6 +124,7 @@ class AddressDatabase:
         for a in addresses:
             # Strips whitespace
             addr_unit = a[self.unit_col_in].replace(' ', '')
+            print(addr_unit)
 
             # Removes parenthetical notes
             addr_unit = self.remove_parenthesis(addr_unit)
@@ -131,68 +139,71 @@ class AddressDatabase:
             addr_unit = self.remove_prefix(addr_unit, prefix)
             prefix += ' '  # Adds space for formatting
 
-            seq_range = self.get_seq_range(addr_unit)  # Gets start & end index
-
-            # Appends prefix for mixed indecies (e.g., A1-A3, 1A-1D)
-            if (
-                len(seq_range['start_in']) != 1
-                and not seq_range['start_in'].isnumeric()
-            ):
-                if len(seq_range['start_in']) > 2:
-                    # Checks for ##-Char Pattern (e.g., 10A-10B or 19A-19H)
-                    if seq_range['start_in'][0:2].isnumeric():
-                        prefix_offset = 2
-                    # Checks for Char-## Pattern (e.g., A10-A19)
-                    elif seq_range['start_in'][1:].isnumeric():
+            try:
+                seq_range = self.get_seq_range(addr_unit)  # Gets start & end index
+            except:
+                print('test')
+            else:
+                # Appends prefix for mixed indecies (e.g., A1-A3, 1A-1D)
+                if (
+                    len(seq_range['start_in']) != 1
+                    and not seq_range['start_in'].isnumeric()
+                ):
+                    if len(seq_range['start_in']) > 2:
+                        # Checks for ##-Char Pattern (e.g., 10A-10B or 19A-19H)
+                        if seq_range['start_in'][0:2].isnumeric():
+                            prefix_offset = 2
+                        # Checks for Char-## Pattern (e.g., A10-A19)
+                        elif seq_range['start_in'][1:].isnumeric():
+                            prefix_offset = 1
+                        else:
+                            print(
+                                'Row contains unknown pattern',
+                                seq_range['start_in'],
+                                seq_range['end_in']
+                            )
+                            print(a)
+                            errors.append(a)
+                            continue
+                    # Checks for #-Char Pattern (e.g., 1A-1B or 8A-8H)
+                    else:
                         prefix_offset = 1
+                    t_prefix = seq_range['start_in'][:prefix_offset]
+
+                    if t_prefix == seq_range['end_in'][:prefix_offset]:
+                        prefix += t_prefix
+                        seq_range['start_in'] = seq_range['start_in'][prefix_offset:]
+                        seq_range['end_in'] = seq_range['end_in'][prefix_offset:]
+                        addr_unit = (
+                            seq_range['start_in'] + '-' + seq_range['end_in']
+                        )
                     else:
                         print(
-                            'Row contains unknown pattern',
+                            'Row contains error',
                             seq_range['start_in'],
                             seq_range['end_in']
                         )
                         print(a)
                         errors.append(a)
                         continue
-                # Checks for #-Char Pattern (e.g., 1A-1B or 8A-8H)
-                else:
-                    prefix_offset = 1
-                t_prefix = seq_range['start_in'][:prefix_offset]
 
-                if t_prefix == seq_range['end_in'][:prefix_offset]:
-                    prefix += t_prefix
-                    seq_range['start_in'] = seq_range['start_in'][prefix_offset:]
-                    seq_range['end_in'] = seq_range['end_in'][prefix_offset:]
-                    addr_unit = (
-                        seq_range['start_in'] + '-' + seq_range['end_in']
-                    )
-                else:
-                    print(
-                        'Row contains error',
-                        seq_range['start_in'],
-                        seq_range['end_in']
-                    )
-                    print(a)
-                    errors.append(a)
-                    continue
-
-            convert_char = not seq_range['start_in'].isnumeric()
-            if convert_char:
-                seq_range['start_in'] = ord(seq_range['start_in'])
-                seq_range['end_in'] = ord(seq_range['end_in'])
-            else:
-                seq_range['start_in'] = int(seq_range['start_in'])
-                seq_range['end_in'] = int(seq_range['end_in'])
-
-            # Sets ADDR_UNIT value for numeric and non-numeric Units
-            for i in range(seq_range['start_in'], seq_range['end_in']+1):
-                t_address = a
+                convert_char = not seq_range['start_in'].isnumeric()
                 if convert_char:
-                    t_address[self.unit_col_in] = prefix + str(chr(i))
+                    seq_range['start_in'] = ord(seq_range['start_in'])
+                    seq_range['end_in'] = ord(seq_range['end_in'])
                 else:
-                    t_address[self.unit_col_in] = prefix + str(i)
-                expanded_addresses.append(
-                    t_address.copy()
-                )
+                    seq_range['start_in'] = int(seq_range['start_in'])
+                    seq_range['end_in'] = int(seq_range['end_in'])
+
+                # Sets ADDR_UNIT value for numeric and non-numeric Units
+                for i in range(seq_range['start_in'], seq_range['end_in']+1):
+                    t_address = a
+                    if convert_char:
+                        t_address[self.unit_col_in] = prefix + str(chr(i))
+                    else:
+                        t_address[self.unit_col_in] = prefix + str(i)
+                    expanded_addresses.append(
+                        t_address.copy()
+                    )
 
         return expanded_addresses
